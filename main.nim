@@ -15,7 +15,7 @@ let
     eps = epsilon(float)    # r: 0.00000001 - probably a more sensible value >:)
 
 var
-  thr: array[0..intervals, Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float, sum: ref float]]]
+  thr: array[0..11, Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float, sum: ref float]]]
   L: Lock
   sum: ref float
 
