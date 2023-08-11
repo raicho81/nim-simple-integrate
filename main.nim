@@ -1,4 +1,3 @@
-import std/math
 from std/fenv import epsilon
 import std/locks
 import psutil
@@ -29,7 +28,7 @@ proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float
       x = p.intervalStart
       value = 0.0
     while x <= (p.intervalEnd - p.eps):
-      x = x + eps
+      x = x + p.eps
       let
         leftSum = p.f(x - p.eps) * p.eps
         rightSum = p.f(x + p.eps) * p.eps
