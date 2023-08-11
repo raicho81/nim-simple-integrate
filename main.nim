@@ -5,10 +5,8 @@ import strutils
 type 
   IntegrandFunction = proc(x: float): float {.nimcall, gcsafe.}               # Derivate of the primitive function
 
-const C = 0
-
-
 const
+  C = 0
   numCpus* {.strdefine.} = "12"
 
 let
