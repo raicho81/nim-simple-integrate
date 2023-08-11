@@ -1,20 +1,24 @@
 from std/fenv import epsilon
 import std/locks
-import psutil
+import strutils
 
 type 
   IntegrandFunction = proc(x: float): float {.nimcall, gcsafe.}               # Derivate of the primitive function
 
 const C = 0
 
+
+const
+  numCpus* {.strdefine.} = "12"
+
 let
-    intervals =  cpu_count()
-    Derivate = proc(x: float): float = x * x
-    PrimitiveFunction = proc(x: float): float = x * x * x / 3 + C # + C which I choose to be zero
-    eps = abs(epsilon(float)*10e4) # 0.00000001
+  intervals = parseInt(numCpus)
+  Derivate = proc(x: float): float = x * x
+  PrimitiveFunction = proc(x: float): float = x * x * x / 3 + C # + C which I choose to be zero
+  eps = abs(epsilon(float)*10e4) # 0.00000001
 
 var
-  thr: array[0..11, Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]]]
+  thr: array[0..(parseInt(numCpus) - 1), Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]]]
   L: Lock
   sum: float64
 
@@ -26,7 +30,8 @@ proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float
     var
       x = p.intervalStart
       partialSum = 0.0
-    let endValue = (p.intervalEnd - p.eps)
+    let
+      endValue = (p.intervalEnd - p.eps)
     while x <= endValue:
       x = x + p.eps
       let
