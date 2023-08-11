@@ -11,30 +11,30 @@ let
     intervals =  cpu_count()
     Derivate = proc(x: float): float = x * x
     PrimitiveFunction = proc(x: float): float = x * x * x / 3 + C # + C which I choose to be zero
-    eps = epsilon(float)    # r: 0.00000001 - probably a more sensible value >:)
+    eps = 0.00000001 # abs(epsilon(float))
 
 var
-  thr: array[0..11, Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float, sum: ref float]]]
+  thr: array[0..11, Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]]]
   L: Lock
-  sum: ref float
+  sum: float64
 
-new(sum)
-sum[] = 0.0
+sum = 0.0
 initLock(L)
 
-proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float, sum: ref float]) {.thread.} = 
+proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]) {.thread.} = 
     echo "Created compute thread for interval: [", p.intervalStart, ", ", p.intervalEnd ,"]"
     var
       x = p.intervalStart
-      value = 0.0
+      partialSum = 0.0
     while x <= (p.intervalEnd - p.eps):
       x = x + p.eps
       let
         leftSum = p.f(x - p.eps) * p.eps
         rightSum = p.f(x + p.eps) * p.eps
-      value = value + (leftSum + rightSum) / 2                # Error correction
+      partialSum = partialSum + (leftSum + rightSum) / 2                # Error correction
+    echo "partialSum = ", partialSum
     withLock(L):
-      p.sum[] = p.sum[] + value
+      sum = sum + partialSum
 
 var 
     intervalStart = 0.0
@@ -44,12 +44,13 @@ var
 echo "eps = ", eps
 
 for i in 0..high(thr): 
-  createThread(thr[i], ThreadFunc, (Derivate, intervalStart, (intervalStart + intervalLen), eps, sum))
+  createThread(thr[i], ThreadFunc, (Derivate, intervalStart, (intervalStart + intervalLen), eps))
   intervalStart = intervalStart + intervalLen
 joinThreads(thr)
 # deinitLock(L)
 
-let computedSpeculativeEpsApproximation = abs(sum[] - (PrimitiveFunction(10.0) - PrimitiveFunction(0.0)))  # Assume C is zero
+let computedSpeculativeEpsApproximation = abs(sum - (PrimitiveFunction(10.0) - PrimitiveFunction(0.0)))  # Assume C is zero
 
+echo "Integral(", IntegrandFunction, ") = ", sum
 echo "computedSpeculativeEpsApproximation = ", computedSpeculativeEpsApproximation
 
