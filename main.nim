@@ -11,39 +11,45 @@ const
 
 let
   intervals = parseInt(numCpus)
-  Derivate = proc(x: float): float = x * x
-  PrimitiveFunction = proc(x: float): float = x * x * x / 3 + C # + C which I choose to be zero
-  eps = abs(epsilon(float)*10e4) # 0.00000001
+  Derivate = proc(x: float64): float64 = x * x
+  PrimitiveFunction = proc(x: float64): float64 = x * x * x / 3 + C # + C which I choose to be zero
+  eps = abs(epsilon(float64)*10e2) # 0.00000001
 
 var
-  thr: array[0..(parseInt(numCpus) - 1), Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]]]
+  thr: array[0..(parseInt(numCpus) - 1), Thread[tuple[f: IntegrandFunction, intervalStart, intervalEnd: float64, eps: float64]]]
   L: Lock
   sum: float64
 
 sum = 0.0
 initLock(L)
 
-proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float, eps: float]) {.thread.} = 
+proc ThreadFunc(p: tuple[f: IntegrandFunction, intervalStart, intervalEnd: float64, eps: float64]) {.thread.} = 
     echo "Created compute thread for interval: [", p.intervalStart, ", ", p.intervalEnd ,"]"
-    var
-      x = p.intervalStart
-      partialSum = 0.0
+
     let
-      endValue = (p.intervalEnd - p.eps)
+      endValue = (p.intervalEnd - 2 * p.eps)
+
+    var
+      x = (p.intervalStart + p.eps)
+      leftSum = p.f(x - p.eps) * p.eps
+      rightSum = p.f(x + p.eps) * p.eps
+      partialSum = (leftSum + rightSum) / 2                # Error correction
+
+    leftSum = rightSum
     while x <= endValue:
       x = x + p.eps
-      let
-        leftSum = p.f(x - p.eps) * p.eps
-        rightSum = p.f(x + p.eps) * p.eps
+      rightSum = p.f(x + p.eps) * p.eps      
       partialSum = partialSum + (leftSum + rightSum) / 2                # Error correction
+      leftSum = rightSum
+
     echo "partialSum = ", partialSum
     withLock(L):
       sum = sum + partialSum
 
 var 
-    intervalStart = 0.0
-    intervalEnd = 10.0
-    intervalLen = (intervalEnd - intervalStart) / float(intervals)
+    intervalStart = 0.0.float64
+    intervalEnd = 1.0.float64
+    intervalLen = (intervalEnd - intervalStart) / float64(intervals)
 
 echo "eps = ", eps
 
@@ -53,7 +59,7 @@ for i in 0..high(thr):
 joinThreads(thr)
 deinitLock(L)
 
-let computedSpeculativeEpsApproximation = abs(sum - (PrimitiveFunction(10.0) - PrimitiveFunction(0.0)))  # Assume C is zero
+let computedSpeculativeEpsApproximation = abs(sum - (PrimitiveFunction(intervalEnd) - PrimitiveFunction(intervalStart)))  # Assume C is zero
 
 echo "Integral(", IntegrandFunction, ") = ", sum
 echo "computedSpeculativeEpsApproximation = ", computedSpeculativeEpsApproximation

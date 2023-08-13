@@ -1,23 +1,21 @@
-import nimsimd/[sse2, sse3, avx, avx2]
+import nimsimd/avx
 from std/fenv import epsilon
-import nimsimd/runtimecheck
-
-import nimsimd/sse42
 
 when defined(gcc) or defined(clang):
-  {.localPassc: "-msse4.2".}
+  {.localPassc: "-mavx".}
 
-# SIMD floating point multiplication
+# SIMD 64-bit floating point multiplication
 let
-  a = mm_set1_ps(1.0) # Vector of 4 float32 each with value 1.0
-  b = mm_set1_ps(2.0) # Vector of 4 float32 each with value 2.0
-  c = mm_mul_ps(a, b) # SIMD vector multiplication operator
-
-echo checkInstructionSets({SSE41, PCLMULQDQ})
+  eps = epsilon(float64)
+  a1 = mm256_set_pd(2.0, 3.0, 4.0, 5.0)
+  b1 = mm256_set1_pd(eps)
+  c1 = mm256_mul_pd(a1, b1)
+  d1 = mm256_set1_pd(2.0)  
+  q1 = mm256_div_pd(c1, d1)
+  # s1 = mm256_add_pd()
 
 # Cast the vector to echo as separate float32 values
-echo cast[array[4, float32]](c)
-
-let four_ones = mm256_set1_pd(1.0);
-let four_floats = mm256_set_pd(1.0, 2.0, 3.0, 4.0)
-let four_eps = mm256_set1_pd(epsilon(float))
+# echo cast[array[4, float32]](c)
+echo "epsilon(float64)=", eps
+echo cast[array[4, float64]](c1)
+echo cast[array[4, float64]](q1)
